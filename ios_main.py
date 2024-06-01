@@ -1,4 +1,4 @@
-from toolbox import Loan
+from lib.loans import Loan
 
 
 
