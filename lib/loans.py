@@ -77,3 +77,58 @@ class InvestmentLoan(Loan):
     def summary(self):
         super().summary()
         print(f'Loan Value Ratio: {self.lvr:>12.0%}')
+
+
+class InvestmentProperty:
+
+    def __init__(self, name):
+        self.name = name
+        self.expenses = None
+
+    def set_loan(self, loan):
+        self.loan = loan
+    
+    def set_expenses(self, expenses):
+        """
+        Creates a table of expenses
+        [{
+            'value': 100,
+            'description': 'test',
+            'start_date': '2024-01-01',
+            'end_date': '2024-02-01',
+            'freq': '1W'
+        }]
+
+        """
+
+        summary = pd.DataFrame()
+        for expense in expenses:
+            e = Expense(**expense)
+            summary = pd.concat([e.table, summary])
+        self.expenses = summary
+
+
+class Expense:
+    """ 
+    Represents an expense on the investment. Expenses can repeat at a set interval between a start and end date.
+
+    Attributes:
+        table (DataFrame): table with expense, date, value and description
+    
+    """
+    def __init__(self, description, value, start_date, end_date='', freq=''):
+        self.description = description
+        self.value = value
+        self.start_date = start_date
+        self.end_date = end_date
+        self.freq = freq
+
+        if self.end_date == '' and self.freq == '':
+            self.table = pd.DataFrame({'value': value, 'description': description}, 
+                                      index=pd.DatetimeIndex([f'{self.start_date} 00:00:00']))
+        else:
+            date_range = pd.date_range(start=start_date, end=end_date, freq=freq)
+            self.table = pd.DataFrame({'value': value, 'description': description}, index=date_range)
+
+    def __str__(self):
+        return f'Description: {self.description}, Value: {self.value} Frequency: {self.freq}'
