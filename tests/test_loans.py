@@ -6,11 +6,6 @@ from lib.loans import Loan, Expense, InvestmentProperty
 
 class LoanOperationalTest(TestCase):
 
-    # def setUp(self):
-    #     self.loan = Loan(0.07, 30, 500000)
-    #     print('running setup')
-
-
     def test_attributes(self):
         test_loan = Loan(0.07, 30, 500000)
         # Test payment amount.
@@ -48,16 +43,39 @@ class InvestmentPropertyTest(TestCase):
                 'end_date': '2024-02-01',
                 'freq': '1W'
             },{
-                'value': -200,
+                'value': 200,
                 'description': 'test2',
                 'start_date': '2024-01-01'             
             }
 
         ]
 
-        ip = InvestmentProperty('test_ip')
-        ip.set_expenses(expenses)
-        print(ip.expenses)
-        
+        ip = InvestmentProperty('test_ip', Loan(0.07, 30, 500000, start='2024-01-01'), expenses)
+        # test the expenses detailed table has the correct rows
         self.assertEqual(len(ip.expenses.index), 5)
+
+    def test_model(self):
+        expenses = [
+            {
+                'value': 100,
+                'description': 'test1',
+                'start_date': '2024-01-01',
+                'end_date': '2034-02-01',
+                'freq': '1W'
+            },{
+                'value': 200,
+                'description': 'test2',
+                'start_date': '2024-01-01'             
+            }
+
+        ]
+
+        ip = InvestmentProperty('test_ip', Loan(0.07, 30, 500000, start='2024-01-01'), expenses)
+
+        # test that all the columns are the correct names
+        self.assertListEqual(ip.model.columns.values.tolist(), ['Payment', 'Interest', 'Principal', 'Balance', 'Expenses'])
+        # test there are 360 rows in the model
+        self.assertEqual(ip.model.shape[0], 360)
+       
+
 
