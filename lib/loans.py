@@ -1,6 +1,7 @@
 import datetime as dt
 from dateutils import month_start, relativedelta
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 import numpy_financial as npf
 import pandas as pd
 
@@ -41,11 +42,26 @@ class Loan:
         return table.round(2)
 
     def plot_balances(self):
-        amort = self.loan_table()
-        plt.plot(amort.Balance, label='Balance')
-        plt.plot(amort.Interest.cumsum(), label='Interest Paid')
-        plt.grid(axis='y', alpha=.5)
-        plt.legend(loc=8)
+        # amort = self.loan_table()
+        # plt.plot(amort.Balance, label='Balance')
+        # plt.plot(amort.Interest.cumsum(), label='Interest Paid')
+        # plt.grid(axis='y', alpha=.5)
+        # plt.legend(loc=8)
+        # plt.show()
+
+        fig, ax = plt.subplots(figsize=(12, 6))
+
+        ax.plot(self.table.index, self.table['Payment'], label='Payment')
+        ax.plot(self.table.index, self.table['Interest'], label='Interest')
+        ax.plot(self.table.index, self.table['Principal'], label='Principal')
+        ax.plot(self.table.index, self.table['Balance'], label='Balance')
+
+        ax.set_yscale('log')
+        ax.grid(True)
+        ax.yaxis.set_major_formatter(ticker.ScalarFormatter())
+
+        ax.legend()
+
         plt.show()
 
     def summary(self):
@@ -81,14 +97,19 @@ class InvestmentLoan(Loan):
 
 class InvestmentProperty:
 
-    def __init__(self, name):
+    def __init__(self, name: str, loan: Loan, expenses: list):
         self.name = name
-        self.expenses = None
-
-    def set_loan(self, loan):
         self.loan = loan
+        self._model = pd.DataFrame()
+        self._expenses = pd.DataFrame()
+        self.expenses = expenses
+
+    @property
+    def expenses(self):
+        return self._expenses
     
-    def set_expenses(self, expenses):
+    @expenses.setter
+    def expenses(self, expenses):
         """
         Creates a table of expenses
         [{
@@ -101,11 +122,37 @@ class InvestmentProperty:
 
         """
 
-        summary = pd.DataFrame()
+        table = pd.DataFrame()
         for expense in expenses:
             e = Expense(**expense)
-            summary = pd.concat([e.table, summary])
-        self.expenses = summary
+            table = pd.concat([e.table, table])
+        self._expenses = table
+
+    @property
+    def model(self):
+
+        expenses_summary = self.expenses[['value']].groupby(pd.Grouper(freq='MS')).sum()
+        self._model = self.loan.table.join(expenses_summary)
+        self._model.rename(columns={'value': 'Expenses'}, inplace=True)
+        return self._model
+    
+    def plot_model(self):
+
+        fig, ax = plt.subplots(figsize=(12, 6))
+
+        ax.plot(self.model.index, self.model['Payment'], label='Payment')
+        ax.plot(self.model.index, self.model['Interest'], label='Interest')
+        ax.plot(self.model.index, self.model['Principal'], label='Principal')
+        ax.plot(self.model.index, self.model['Balance'], label='Balance')
+        ax.plot(self.model.index, self.model['Expenses'], label='Expenses')
+
+        ax.set_yscale('log')
+        ax.grid(True)
+        ax.yaxis.set_major_formatter(ticker.ScalarFormatter())
+
+        ax.legend()
+
+        plt.show()
 
 
 class Expense:
