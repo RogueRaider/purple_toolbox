@@ -15,7 +15,6 @@ As an investor I want to know theses thing after imputing basic values.
 * be able to effectively compare two loans
 * be able to model scenarios containing multiple loans
 
-
 Stretch
 * Model implications of having offset account
 * Total interest cost over the life of the loan

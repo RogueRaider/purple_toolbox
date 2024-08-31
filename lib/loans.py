@@ -154,6 +154,33 @@ class InvestmentProperty:
 
         plt.show()
 
+    def break_even(self, years=1):
+        """
+        This value includes all expenses from the expenses attribute and the interest charged on the loan. 
+
+        This value will decrease over the life of the loan because the cost of interest (typically) goes down. To give an approximate value the first year of the loan is used.
+        """
+
+        # calculate start and end dates 
+        start_date = self.model.index.min()
+        end_date = start_date + relativedelta(years=years) 
+
+        # filter model by the time range
+        df = self.model.loc[self.model.index < end_date]
+
+        # calculate total cost for the time range
+        total_cost = df['Interest'].sum() + df['Expenses'].sum()
+
+        # calculate the number of months and weeks in time range
+        months = (end_date.year - start_date.year) * 12 + end_date.month - start_date.month
+        weeks = (end_date - start_date).days//7
+
+        return {
+            'year': total_cost / years,
+            'month': total_cost / months,
+            'week': total_cost / weeks
+        }
+
 
 class Expense:
     """ 
