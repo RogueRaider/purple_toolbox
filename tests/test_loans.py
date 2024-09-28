@@ -1,7 +1,7 @@
 from unittest import TestCase
 import pandas as pd
 
-from lib.loans import Loan, Expense, InvestmentProperty
+from lib.loans import Loan, Expense, InvestmentProperty, InvestmentLoan
 
 
 class LoanOperationalTest(TestCase):
@@ -75,6 +75,11 @@ class InvestmentPropertyTest(TestCase):
         ip = InvestmentProperty('test_ip', Loan(0.07, 30, 500000, start='2024-01-01'), expenses)
         # test the expenses detailed table has the correct rows
         self.assertEqual(len(ip.expenses.index), 5)
+        # test to ensure that no empty values in data frame.
+        null_df = ip.expenses[ip.expenses.isnull().any(axis=1)]
+        self.assertEqual(null_df.empty, True)
+
+
 
     def test_model(self):
         expenses = [
@@ -82,7 +87,7 @@ class InvestmentPropertyTest(TestCase):
                 'value': 100,
                 'description': 'test1',
                 'start_date': '2024-01-01',
-                'end_date': '2034-02-01',
+                'end_date': '2054-02-01',
                 'freq': '1W'
             },{
                 'value': 200,
@@ -97,17 +102,18 @@ class InvestmentPropertyTest(TestCase):
         # test that all the columns are the correct names
         self.assertListEqual(ip.model.columns.values.tolist(), ['Payment', 'Interest', 'Principal', 'Balance', 'Expenses'])
         # test there are 360 rows in the model
-        self.assertEqual(ip.model.shape[0], 360)
+        self.assertEqual(ip.model.shape[0], 362)
+        # test there are values in all the expenses rows
+        self.assertEqual(ip.model['Expenses'].isnull().any(), False)
        
-    def test_break_even(self):
+    def test_break_even_simple(self):
 
+        # simple loan scenario to test functionality
         expenses = [
             {
-                'value': 1,
+                'value': 1000,
                 'description': 'test1',
-                'start_date': '2024-01-01',
-                'end_date': '2024-02-01',
-                'freq': '1Y'
+                'start_date': '2024-01-01'
             }
         ]
 
@@ -115,10 +121,35 @@ class InvestmentPropertyTest(TestCase):
 
         be = ip.break_even()
 
-        print(f'By Year: {be["year"]}')
-        print(f'By Month: {be["month"]}')
-        print(f'By Week: {be["week"]}')
+        self.assertEqual(round(be['year'], 2), 4781.91)
+        self.assertEqual(round(be['month'], 2), 398.49)
+        self.assertEqual(round(be['week'], 2), 91.96)
 
-        # Leaving as failing because the Loan table is not working correctly
-        self.assertEqual(True, False)
+    def test_break_even_complex(self):
+
+        # complex loan scenario to test functionality
+        expenses = [
+            {
+                'value': 2000,
+                'description': 'admin_fund',
+                'start_date': '2024-01-01',
+                'end_date': '2054-01-01',
+                'freq': '1YS'                
+            },
+            {
+                'value': 520,
+                'description': 'sinking_fund',
+                'start_date': '2024-01-01',
+                'end_date': '2054-01-01',
+                'freq': '3MS'
+            }            
+        ]
+
+        ip = InvestmentProperty('test_ip', InvestmentLoan(0.07, 30, 450000, 560000, start='2024-01-01'), expenses)
+
+        be = ip.break_even()
+
+        self.assertEqual(round(be['year'], 2), 32834.56)
+        self.assertEqual(round(be['month'], 2), 2736.21)
+        self.assertEqual(round(be['week'], 2), 631.43)
 

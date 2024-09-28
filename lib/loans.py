@@ -71,7 +71,7 @@ class Loan:
         print(f'Loan Amount: {self.loan_amount:>17,.2f}')
         print(f'Payment: {self.pmt_str:>21}')
         print(f'{"Payoff Date:":19s} {amort.index.date[-1]}')
-        print(f'Interest Paid: {amort.Interest.cumsum()[-1]:>15,.2f}')
+        print(f'Interest Paid: {amort.Interest.sum():>15,.2f}')
 
 
     def pay_early(self, extra_amt):
@@ -83,7 +83,7 @@ class Loan:
             extra_pmt += 1
         return extra_pmt, self.pmt + extra_pmt
     
-
+# is this even used?
 class InvestmentLoan(Loan):
     def __init__(self, rate, term, loan_amount, property_value, repayments_per_year=12, start=dt.date.today().isoformat()):
         super().__init__(rate, term, loan_amount, repayments_per_year, start)
@@ -101,7 +101,6 @@ class InvestmentProperty:
         self.name = name
         self.loan = loan
         self._model = pd.DataFrame()
-        self._expenses = pd.DataFrame()
         self.expenses = expenses
 
     @property
@@ -111,7 +110,8 @@ class InvestmentProperty:
     @expenses.setter
     def expenses(self, expenses):
         """
-        Creates a table of expenses
+        Creates a table of expenses. 
+        Expected input
         [{
             'value': 100,
             'description': 'test',
@@ -130,9 +130,13 @@ class InvestmentProperty:
 
     @property
     def model(self):
+        """
+        Represents a financial model of the Investment Property. Returns a table summarizing Loan and Expenses
+        data by month.
 
+        """
         expenses_summary = self.expenses[['value']].groupby(pd.Grouper(freq='MS')).sum()
-        self._model = self.loan.table.join(expenses_summary)
+        self._model = pd.concat([self.loan.table, expenses_summary], axis=1)
         self._model.rename(columns={'value': 'Expenses'}, inplace=True)
         return self._model
     
