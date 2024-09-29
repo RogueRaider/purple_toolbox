@@ -1,7 +1,7 @@
 from unittest import TestCase
 import pandas as pd
 
-from lib.loans import Loan, Expense, InvestmentProperty, InvestmentLoan
+from lib.loans import Loan, Transaction, InvestmentProperty, InvestmentLoan
 
 
 class LoanOperationalTest(TestCase):
@@ -33,23 +33,23 @@ class LoanOperationalTest(TestCase):
         self.assertEqual(round(principal, 2), 3307.22)
         self.assertEqual(round(balance, 2), 0)
 
-class ExpenseTest(TestCase):
+class TransactionTest(TestCase):
 
     def test_attributes(self):
-        e = Expense('test', 100, '2024-01-01', '2024-02-01', '2W')
+        e = Transaction('test', 100, '2024-01-01', '2024-02-01', '2W')
         # test first entry in table index is start date
         self.assertEqual(str(e.table.index[1]), '2024-01-21 00:00:00')
         # test there are 2 rows
         self.assertEqual(len(e.table.index), 2)
     
     def test_single_expense(self):
-        e = Expense('test', 100, '2024-01-01')
+        e = Transaction('test', 100, '2024-01-01')
         # test the table only contains 1 row
         self.assertEqual(len(e.table.index), 1)
 
     def test_merge(self):
-        e1 = Expense('e1', 100, '2024-01-01', '2024-02-01', '2W')
-        e2 = Expense('e2', 200, '2024-01-01', '2024-02-01', '1W')
+        e1 = Transaction('e1', 100, '2024-01-01', '2024-02-01', '2W')
+        e2 = Transaction('e2', 200, '2024-01-01', '2024-02-01', '1W')
         merged = pd.concat([e1.table, e2.table])
         # test the tables can be merged successfully giving 6 rows
         self.assertEqual(len(merged.index), 6)
@@ -57,7 +57,9 @@ class ExpenseTest(TestCase):
 class InvestmentPropertyTest(TestCase):
 
     def test_expenses(self):
-        expenses = [
+        expenses = {
+            'name': 'expenses',
+            'entries': [
             {
                 'value': 100,
                 'description': 'test1',
@@ -68,21 +70,40 @@ class InvestmentPropertyTest(TestCase):
                 'value': 200,
                 'description': 'test2',
                 'start_date': '2024-01-01'             
-            }
+            }]
+        }
+                
 
-        ]
-
-        ip = InvestmentProperty('test_ip', Loan(0.07, 30, 500000, start='2024-01-01'), expenses)
+        ip = InvestmentProperty('test_ip', Loan(0.07, 30, 500000, start='2024-01-01'), transaction_columns=[expenses])
         # test the expenses detailed table has the correct rows
         self.assertEqual(len(ip.expenses.index), 5)
         # test to ensure that no empty values in data frame.
         null_df = ip.expenses[ip.expenses.isnull().any(axis=1)]
         self.assertEqual(null_df.empty, True)
 
+    def test_income(self):
+        income = {
+            'name': 'income',
+            'entries': [
+            {
+                'value': 500,
+                'description': 'rent',
+                'start_date': '2024-01-01',
+                'end_date': '2054-01-01',
+                'freq': '1W'
+            }]
+        }
+               
+        ip = InvestmentProperty('test_ip', Loan(0.07, 30, 500000, start='2024-01-01'), transaction_columns=[income])
+        # test the expenses detailed table has the correct rows
+        self.assertEqual(len(ip.income.index), 1565)
+        self.assertTrue(hasattr(ip, 'income'))
 
 
     def test_model(self):
-        expenses = [
+        expenses = {
+            'name': 'expenses',
+            'entries': [
             {
                 'value': 100,
                 'description': 'test1',
@@ -93,15 +114,26 @@ class InvestmentPropertyTest(TestCase):
                 'value': 200,
                 'description': 'test2',
                 'start_date': '2024-01-01'             
-            }
+            }]
+        }
 
-        ]
+        income = {
+            'name': 'income',
+            'entries': [
+            {
+                'value': 500,
+                'description': 'rent',
+                'start_date': '2024-02-01',
+                'end_date': '2054-01-01',
+                'freq': '1W'
+            }]
+        }
 
-        ip = InvestmentProperty('test_ip', Loan(0.07, 30, 500000, start='2024-01-01'), expenses)
+        ip = InvestmentProperty('test_ip', Loan(0.07, 30, 500000, start='2024-01-01'), transaction_columns=[expenses, income])
 
         # test that all the columns are the correct names
-        self.assertListEqual(ip.model.columns.values.tolist(), ['Payment', 'Interest', 'Principal', 'Balance', 'Expenses'])
-        # test there are 360 rows in the model
+        self.assertListEqual(ip.model.columns.values.tolist(), ['Payment', 'Interest', 'Principal', 'Balance', 'Expenses', 'Income'])
+        # test there are 362 rows in the model
         self.assertEqual(ip.model.shape[0], 362)
         # test there are values in all the expenses rows
         self.assertEqual(ip.model['Expenses'].isnull().any(), False)
@@ -109,15 +141,17 @@ class InvestmentPropertyTest(TestCase):
     def test_break_even_simple(self):
 
         # simple loan scenario to test functionality
-        expenses = [
+        expenses = {
+            'name': 'expenses',
+            'entries': [
             {
                 'value': 1000,
-                'description': 'test1',
+                'description': 'expense1',
                 'start_date': '2024-01-01'
-            }
-        ]
+            }]
+        }
 
-        ip = InvestmentProperty('test_ip', Loan(0.07, 1, 100000, start='2024-01-01'), expenses)
+        ip = InvestmentProperty('test_ip', Loan(0.07, 1, 100000, start='2024-01-01'), transaction_columns=[expenses])
 
         be = ip.break_even()
 
@@ -128,24 +162,40 @@ class InvestmentPropertyTest(TestCase):
     def test_break_even_complex(self):
 
         # complex loan scenario to test functionality
-        expenses = [
-            {
-                'value': 2000,
-                'description': 'admin_fund',
-                'start_date': '2024-01-01',
-                'end_date': '2054-01-01',
-                'freq': '1YS'                
-            },
-            {
-                'value': 520,
-                'description': 'sinking_fund',
-                'start_date': '2024-01-01',
-                'end_date': '2054-01-01',
-                'freq': '3MS'
-            }            
-        ]
+        expenses = {
+            'name': 'expenses',
+            'entries': [
+                {
+                    'value': 450,
+                    'description': 'rates',
+                    'start_date': '2024-01-01',
+                    'end_date': '2054-01-01',
+                    'freq': '3ME'                
+                },
+                {
+                    'value': 1850,
+                    'description': 'body_corporate',
+                    'start_date': '2024-01-01',
+                    'end_date': '2054-01-01',
+                    'freq': '6ME'
+                }
+            ]           
+        }
 
-        ip = InvestmentProperty('test_ip', InvestmentLoan(0.07, 30, 450000, 560000, start='2024-01-01'), expenses)
+        income = {
+            'name': 'income',
+            'entries': [
+            {
+                'value': 550,
+                'description': 'rent',
+                'start_date': '2024-02-01',
+                'end_date': '2054-01-01',
+                'freq': '1W'
+            }]
+        }
+        
+
+        ip = InvestmentProperty('test_ip', InvestmentLoan(0.07, 30, 430000, 520000, start='2024-01-01'), transaction_columns=[expenses, income])
 
         be = ip.break_even()
 

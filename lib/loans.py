@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import numpy_financial as npf
 import pandas as pd
+import numpy as np
 
 
 class Loan:
@@ -97,47 +98,69 @@ class InvestmentLoan(Loan):
 
 class InvestmentProperty:
 
-    def __init__(self, name: str, loan: Loan, expenses: list):
+    def __init__(self, name: str, loan: Loan, transaction_columns=[]):
         self.name = name
         self.loan = loan
+        self.transaction_columns = transaction_columns
         self._model = pd.DataFrame()
-        self.expenses = expenses
 
     @property
-    def expenses(self):
-        return self._expenses
-    
-    @expenses.setter
-    def expenses(self, expenses):
+    def transaction_columns(self):
+        return self._transaction_columns
+
+    @transaction_columns.setter
+    def transaction_columns(self, configs):
         """
-        Creates a table of expenses. 
+        Creates a table of transactions. 
         Expected input
         [{
-            'value': 100,
-            'description': 'test',
-            'start_date': '2024-01-01',
-            'end_date': '2024-02-01',
-            'freq': '1W'
+            'name': 'Expenses',
+            'entries':
+                [{
+                    'value': 100,
+                    'description': 'test',
+                    'start_date': '2024-01-01',
+                    'end_date': '2024-02-01',
+                    'freq': '1WS'
+                }]
         }]
-
         """
+        if len(configs) == 0:
+            self._transaction_columns = []
+            return
 
-        table = pd.DataFrame()
-        for expense in expenses:
-            e = Expense(**expense)
-            table = pd.concat([e.table, table])
-        self._expenses = table
+        transaction_columns = []
+        for config in configs:
+            table = pd.DataFrame()
+            for entry in config['entries']:
+                t = Transaction(**entry)
+                table = pd.concat([t.table, table])
+
+            table.rename(columns={'value': config['name']}, inplace=True)        
+            transaction_columns.append(table)
+            setattr(self, config['name'], table)
+
+        self._transaction_columns = transaction_columns
 
     @property
     def model(self):
         """
-        Represents a financial model of the Investment Property. Returns a table summarizing Loan and Expenses
-        data by month.
+        Represents a financial model of the Investment Property. Returns a table summarizing Loan, Expenses and Income data by month.
 
         """
-        expenses_summary = self.expenses[['value']].groupby(pd.Grouper(freq='MS')).sum()
-        self._model = pd.concat([self.loan.table, expenses_summary], axis=1)
-        self._model.rename(columns={'value': 'Expenses'}, inplace=True)
+
+        self._model = self.loan.table
+
+        if hasattr(self, 'expenses'):
+            expenses_summary = self.expenses[['expenses']].groupby(pd.Grouper(freq='MS')).sum()
+            expenses_summary.rename(columns={'expenses': 'Expenses'}, inplace=True)
+            self._model = pd.concat([self._model, expenses_summary], axis=1)
+
+        if hasattr(self, 'income'):
+            income_summary = self.income[['income']].groupby(pd.Grouper(freq='MS')).sum()
+            income_summary.rename(columns={'income': 'Income'}, inplace=True)
+            self._model = pd.concat([self._model, income_summary], axis=1)            
+
         return self._model
     
     def plot_model(self):
@@ -186,9 +209,9 @@ class InvestmentProperty:
         }
 
 
-class Expense:
+class Transaction:
     """ 
-    Represents an expense on the investment. Expenses can repeat at a set interval between a start and end date.
+    Represents a transaction over the life of an investment. Transactions can repeat at a set interval between a start and end date.
 
     Attributes:
         table (DataFrame): table with expense, date, value and description
