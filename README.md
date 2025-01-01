@@ -6,8 +6,7 @@ These financial scenarios are based off options for investing in property and/or
 
 ### User Stories
 
-
-As an investor I want to know theses thing after imputing basic values.
+As an investor I want to know these things after imputing basic values.
 
 * show the required weekly/monthly rent required to cover loan costs
 * include upkeep costs such as insurance, management, strata and rates
@@ -15,11 +14,15 @@ As an investor I want to know theses thing after imputing basic values.
 * be able to effectively compare two loans
 * be able to model scenarios containing multiple loans
 
+When modeling multiple loans, I want to know these things
+* Cash flow on a per week/month/year, 
+* cash flow is based on expenses, minimum repayments and income
+
+
 Stretch
 * Model implications of having offset account
 * Total interest cost over the life of the loan
 * Cost relative to sqr meterage
-
 
 
 ### Strategies

@@ -147,6 +147,7 @@ class InvestmentProperty:
         """
         Represents a financial model of the Investment Property. Returns a table summarizing Loan, Expenses and Income data by month.
 
+        Net Cashflow = Income - Expenses - Payments 
         """
 
         self._model = self.loan.table
@@ -159,7 +160,10 @@ class InvestmentProperty:
         if hasattr(self, 'income'):
             income_summary = self.income[['income']].groupby(pd.Grouper(freq='MS')).sum()
             income_summary.rename(columns={'income': 'Income'}, inplace=True)
-            self._model = pd.concat([self._model, income_summary], axis=1)            
+            self._model = pd.concat([self._model, income_summary], axis=1)
+
+        if hasattr(self, 'income') and hasattr(self, 'expenses'):
+            self._model['Net_Cashflow'] = self._model.apply(lambda row: row['Income'] - row['Expenses'] - row['Payment'], axis=1)
 
         return self._model
     
@@ -233,3 +237,14 @@ class Transaction:
 
     def __str__(self):
         return f'Description: {self.description}, Value: {self.value} Frequency: {self.freq}'
+
+
+class Projection:
+    """
+    Takes multiple loans.
+
+    Summarize net cashflow by month and year
+    """
+    def __init__(self, loans=[]):
+        pass
+        

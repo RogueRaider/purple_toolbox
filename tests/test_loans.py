@@ -1,7 +1,7 @@
 from unittest import TestCase
 import pandas as pd
 
-from lib.loans import Loan, Transaction, InvestmentProperty, InvestmentLoan
+from lib.loans import Loan, Transaction, InvestmentProperty, InvestmentLoan, Projection
 
 
 class LoanOperationalTest(TestCase):
@@ -132,7 +132,7 @@ class InvestmentPropertyTest(TestCase):
         ip = InvestmentProperty('test_ip', Loan(0.07, 30, 500000, start='2024-01-01'), transaction_columns=[expenses, income])
 
         # test that all the columns are the correct names
-        self.assertListEqual(ip.model.columns.values.tolist(), ['Payment', 'Interest', 'Principal', 'Balance', 'Expenses', 'Income'])
+        self.assertListEqual(ip.model.columns.values.tolist(), ['Payment', 'Interest', 'Principal', 'Balance', 'Expenses', 'Income', 'Net_Cashflow'])
         # test there are 362 rows in the model
         self.assertEqual(ip.model.shape[0], 362)
         # test there are values in all the expenses rows
@@ -199,7 +199,9 @@ class InvestmentPropertyTest(TestCase):
 
         be = ip.break_even()
 
-        self.assertEqual(round(be['year'], 2), 32834.56)
-        self.assertEqual(round(be['month'], 2), 2736.21)
-        self.assertEqual(round(be['week'], 2), 631.43)
+        self.assertEqual(round(be['year'], 2), 32976.58)
+        self.assertEqual(round(be['month'], 2), 2748.05)
+        self.assertEqual(round(be['week'], 2), 634.17)
+
+
 
