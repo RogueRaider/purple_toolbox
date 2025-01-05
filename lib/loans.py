@@ -84,7 +84,7 @@ class Loan:
             extra_pmt += 1
         return extra_pmt, self.pmt + extra_pmt
     
-# is this even used?
+# This could probably be transferred to the Investment Property Class
 class InvestmentLoan(Loan):
     def __init__(self, rate, term, loan_amount, property_value, repayments_per_year=12, start=dt.date.today().isoformat()):
         super().__init__(rate, term, loan_amount, repayments_per_year, start)
@@ -147,7 +147,7 @@ class InvestmentProperty:
         """
         Represents a financial model of the Investment Property. Returns a table summarizing Loan, Expenses and Income data by month.
 
-        Net Cashflow = Income - Expenses - Payments 
+        Net Cashflow = Income - Expenses - Mortgage Payments 
         """
 
         self._model = self.loan.table
@@ -211,6 +211,24 @@ class InvestmentProperty:
             'month': total_cost / months,
             'week': total_cost / weeks
         }
+    
+    def net_cash_flow(self, years=1):
+        """
+        Expresses the amount of cash flow a property produces. Rental income less operating costs and mortgage repayment over the first year of the loan.
+        
+        """
+
+        # calculate start and end dates 
+        start_date = self.model.index.min()
+        end_date = start_date + relativedelta(years=years) 
+
+        # filter model by the time range
+        df = self.model.loc[self.model.index < end_date]
+
+        # calculate total cost for the time range
+        cashflow = round(df['Net_Cashflow'].sum(), 2)
+
+        return cashflow
 
 
 class Transaction:
@@ -239,12 +257,28 @@ class Transaction:
         return f'Description: {self.description}, Value: {self.value} Frequency: {self.freq}'
 
 
-class Projection:
+class InvestmentPropertiesProjection:
     """
-    Takes multiple loans.
+    Produces attributes based on a portfolio of InvestmentProperties.
 
-    Summarize net cashflow by month and year
+    Cashflow of multiple properties
     """
-    def __init__(self, loans=[]):
+    def __init__(self, properties=[]):
+        self._properties = properties
         pass
         
+    @property
+    def properties(self):
+        return self._properties
+    
+    @properties.setter
+    def properties(self, properties):
+        self._properties = properties
+
+    def net_cash_flow(self, years=1):
+
+        cash_flow = 0
+        for p in self.properties:
+            cash_flow += p.net_cash_flow(years)
+    
+        return cash_flow

@@ -65,4 +65,8 @@ ip.model.head(30)
 
 ip.plot_model()
 
+# %%
 
+print('hi')
+
+# %%

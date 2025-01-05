@@ -1,7 +1,7 @@
 from unittest import TestCase
 import pandas as pd
 
-from lib.loans import Loan, Transaction, InvestmentProperty, InvestmentLoan, Projection
+from lib.loans import Loan, Transaction, InvestmentProperty, InvestmentLoan, InvestmentPropertiesProjection
 
 
 class LoanOperationalTest(TestCase):
@@ -202,6 +202,118 @@ class InvestmentPropertyTest(TestCase):
         self.assertEqual(round(be['year'], 2), 32976.58)
         self.assertEqual(round(be['month'], 2), 2748.05)
         self.assertEqual(round(be['week'], 2), 634.17)
+
+    def test_net_cash_flow_complex(self):
+
+        # simple loan scenario to test functionality
+        expenses = {
+            'name': 'expenses',
+            'entries': [
+                {
+                    'value': 450,
+                    'description': 'rates',
+                    'start_date': '2024-01-01',
+                    'end_date': '2054-01-01',
+                    'freq': '3ME'                
+                },
+                {
+                    'value': 1000,
+                    'description': 'body_corporate',
+                    'start_date': '2024-01-01',
+                    'end_date': '2054-01-01',
+                    'freq': '3ME'
+                }
+            ]           
+        }
+
+        income = {
+            'name': 'income',
+            'entries': [
+            {
+                'value': 550,
+                'description': 'rent',
+                'start_date': '2024-02-01',
+                'end_date': '2054-01-01',
+                'freq': '1W'
+            }]
+        }        
+
+        ip = InvestmentProperty('test_ip', InvestmentLoan(0.07, 30, 480000, 600000, start='2024-01-01'), transaction_columns=[expenses, income])
+   
+        self.assertEqual(ip.net_cash_flow(), -13077.95)
+
+class InvestmentPropertiesProjectionTest(TestCase):
+
+
+    def test_net_cashflow(self):
+
+        # simple loan scenario to test functionality
+        expenses = {
+            'name': 'expenses',
+            'entries': [
+                {
+                    'value': 450,
+                    'description': 'rates',
+                    'start_date': '2024-01-01',
+                    'end_date': '2054-01-01',
+                    'freq': '3ME'                
+                },
+                {
+                    'value': 1000,
+                    'description': 'body_corporate',
+                    'start_date': '2024-01-01',
+                    'end_date': '2054-01-01',
+                    'freq': '3ME'
+                }
+            ]           
+        }
+
+        income = {
+            'name': 'income',
+            'entries': [
+            {
+                'value': 550,
+                'description': 'rent',
+                'start_date': '2024-02-01',
+                'end_date': '2054-01-01',
+                'freq': '1W'
+            }]
+        }        
+
+        ip1 = InvestmentProperty('test_ip', InvestmentLoan(0.07, 30, 480000, 600000, start='2024-01-01'), transaction_columns=[expenses, income])
+
+        expenses = {
+            'name': 'expenses',
+            'entries': [
+                {
+                    'value': 450,
+                    'description': 'rates',
+                    'start_date': '2024-01-01',
+                    'end_date': '2034-01-01',
+                    'freq': '3ME'                
+                },
+            ]           
+        }
+
+        income = {
+            'name': 'income',
+            'entries': [
+            {
+                'value': 420,
+                'description': 'rent',
+                'start_date': '2024-02-01',
+                'end_date': '2034-01-01',
+                'freq': '1W'
+            }]
+        }        
+
+        ip2 = InvestmentProperty('test_ip', InvestmentLoan(0.07, 10, 180000, 180000, start='2024-01-01'), transaction_columns=[expenses, income])
+
+        print(ip1.net_cash_flow(), ip2.net_cash_flow())
+
+        print('payment', ip1.loan.pmt, ip2.loan.pmt)
+
+        self.assertEqual(True, False)
 
 
 
